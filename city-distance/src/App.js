@@ -33,87 +33,74 @@ const fetchCoordinates = async (city, country, method) => {
       }
 
     case "mock":
-      if (city.toLowerCase() === "lima") {
-        return { lat: -12.0463731, lon: -77.042754 };
-      } else if (city.toLowerCase() === "tokyo") {
-        return { lat: 35.6895, lon: 139.6917 };
+      const mockCities = {
+        lima: { lat: -12.0463731, lon: -77.042754 },
+        tokyo: { lat: 35.6895, lon: 139.6917 },
+        newyork: { lat: 40.7128, lon: -74.006 },
+        paris: { lat: 48.8566, lon: 2.3522 },
+        sydney: { lat: -33.8688, lon: 151.2093 },
+        mumbai: { lat: 19.076, lon: 72.8777 },
+        buenosaires: { lat: -34.6037, lon: -58.3816 },
+      };
+
+      const normalizedCity = city.toLowerCase().replace(/\s/g, "").trim();
+
+      if (mockCities[normalizedCity]) {
+        return mockCities[normalizedCity];
       } else {
-        throw new Error("City not found in Mock data");
+        throw new Error("City not found in mock data");
       }
+
     case "csv":
       try {
-        const response = await fetch("/worldcities.csv");
+        const loadCSV = async () => {
+          const response = await fetch("/worldcities.csv");
+          if (!response.ok) {
+            throw new Error(`Error loading CSV file: ${response.statusText}`);
+          }
+          return response.text();
+        };
 
-        if (!response.ok) {
-          throw new Error(`Error loading CSV file: ${response.statusText}`);
-        }
-
-        const text = await response.text();
-
-        if (!text || text.trim().length === 0) {
-          throw new Error("The CSV file is empty or not loaded correctly.");
-        }
-
-        const rows = text.split("\n").slice(1);
-
-        if (rows.length === 0) {
-          throw new Error("No data found in the CSV file.");
-        }
-
-        const cities = rows
-          .map((row) => {
-            const columns = row.split(",").map((col) => col.replace(/"/g, ""));
-            const [
+        const parseCSV = (csvText) => {
+          const rows = csvText.split("\n").slice(1);
+          if (!rows.length) {
+            throw new Error("No data found in the CSV file.");
+          }
+          return rows.map((row) => {
+            const [city, city_ascii, lat, lng] = row
+              .split(",")
+              .map((col) => col.replace(/"/g, "").trim());
+            return {
               city,
               city_ascii,
-              lat,
-              lng,
-              country,
-              iso2,
-              iso3,
-              admin_name,
-              capital,
-              population,
-              id,
-            ] = columns;
+              lat: parseFloat(lat),
+              lon: parseFloat(lng),
+            };
+          });
+        };
 
-            return { city, lat, lng };
-          })
-          .filter(Boolean);
+        const findCity = (cities, city) => {
+          const normalizedCity = city.toLowerCase().trim();
+          return cities.find(
+            (cityData) => cityData.city.toLowerCase().trim() === normalizedCity
+          );
+        };
 
-        console.log("Cities loaded:", cities.length);
-
-        const normalizeString = (str) =>
-          str
-            .toLowerCase()
-            .trim()
-            .normalize("NFD")
-            .replace(/[\u0300-\u036f]/g, "");
-
-        const normalizedCity = normalizeString(city);
-
-        const cityData = cities.find(
-          (cityData) => normalizeString(cityData.city) === normalizedCity
-        );
+        const csvText = await loadCSV();
+        const cities = parseCSV(csvText);
+        console.log("Cities Loaded:", cities.length);
+        const cityData = findCity(cities, city);
 
         if (cityData) {
-          console.log("City found:", cityData);
-          return {
-            lat: parseFloat(cityData.lat),
-            lon: parseFloat(cityData.lng),
-          };
+          console.log("City Found:", cityData);
+          return { lat: cityData.lat, lon: cityData.lon };
         } else {
-          console.error(
-            "City not found. First 10 cities:",
-            cities.slice(0, 10)
-          );
-          throw new Error(`City not found in CSV: ${city}`);
+          throw new Error(`City not found in CSV:" ${city}`);
         }
       } catch (error) {
-        console.error("Error processing CSV:", error);
+        console.error("Error processing CSV".error);
         throw error;
       }
-
     default:
       throw new Error("Invalid method");
   }
