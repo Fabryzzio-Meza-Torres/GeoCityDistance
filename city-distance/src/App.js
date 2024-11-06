@@ -113,9 +113,13 @@ function App() {
   const [country2, setCountry2] = useState("");
   const [method, setMethod] = useState("api");
   const [distance, setDistance] = useState(null);
+  const [error, setError] = useState(null);
 
   const calculateDistance = async (e) => {
     e.preventDefault();
+    setError(null);
+    setDistance(null);
+
     try {
       const coords1 = await fetchCoordinates(city1, country1, method);
       const coords2 = await fetchCoordinates(city2, country2, method);
@@ -123,6 +127,7 @@ function App() {
       setDistance(distance);
     } catch (error) {
       console.error(error);
+      setError(error.message || "Error al calcular la distancia");
     }
   };
 
@@ -146,6 +151,11 @@ function App() {
       <MethodSelector method={method} setMethod={setMethod} />
 
       <button onClick={calculateDistance}>Calcular Distancia</button>
+      {error && (
+        <div data-testid="error-message" className="error">
+          {error}
+        </div>
+      )}
       <DistanceResult distance={distance} />
     </div>
   );

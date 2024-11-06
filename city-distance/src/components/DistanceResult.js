@@ -1,10 +1,10 @@
 import React from "react";
 
-export const DistanceResult = ({ distance }) => {
+const DistanceResult = ({ distance }) => {
+  if (distance === null) return null;
+
   return (
-    <div>
-      {distance !== null ? <h2>Distancia:{distance.toFixed(2)} km</h2> : null}
-    </div>
+    <div data-testid="distance-result">Distancia: {distance.toFixed(1)} km</div>
   );
 };
 
